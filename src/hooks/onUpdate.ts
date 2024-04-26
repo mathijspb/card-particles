@@ -19,7 +19,6 @@ function update() {
 
 // gsap.ticker.fps(60);
 gsap.ticker.add(update);
-console.log('add ticker');
 
 function onUpdate(scopeOrCallback: any | Function, callback?: Function) {
     let newCallback;

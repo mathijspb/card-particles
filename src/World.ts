@@ -38,7 +38,7 @@ export default class World {
     private settings =  {
         gravity: new Vector2(0, 0.0010),
         spawnDistance: 3,
-        velocityModifier: 0.03,
+        velocityModifier: 1,
         dieSpeed: 0.01,
         opacityRange: { min: 0.2, max: 0.8 },
         zRange: { min: 0.2, max: 0.8 },
@@ -196,7 +196,7 @@ export default class World {
     spawnParticle(delta: number) {
         if (!globals.camera) return;
 
-        const velocity = this.velocity.normalize().multiplyScalar(delta * 0.13);
+        const velocity = this.velocity.normalize().multiplyScalar(delta * 0.13 * this.settings.velocityModifier);
         // const particle = this.particles.find((particle: Particle) => particle.isDead);
         const particle = this.particles[this.particleIndex];
         // const particle = findItemDescending(this.particles,) .find((particle: Particle) => particle.isDead);
