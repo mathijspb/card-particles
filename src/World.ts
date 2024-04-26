@@ -35,7 +35,7 @@ export default class World {
         current: new Vector3()
     };
     private settings =  {
-        gravity: new Vector2(0, 0.0005),
+        gravity: new Vector2(0, 0.0008),
         spawnDistance: 3,
         velocityModifier: 0.03,
         dieSpeed: 0.01,
@@ -167,7 +167,7 @@ export default class World {
         this.updatePosition();
         this.updateVelocity(delta);
         this.spawnParticles();
-        this.updateParticles();
+        this.updateParticles(delta);
     }
 
     updatePosition() {
@@ -217,11 +217,11 @@ export default class World {
             direction.x = -directionVelocity.length() * 0.5;
             direction.y = directionVelocity.x;
             // direction.z = v.length();
-            particle.rotation.setFromVector3(direction);
+            particle.setRotation(direction);
         }
     }
 
-    updateParticles() {
+    updateParticles(delta: number) {
         this.gravity.set(this.settings.gravity.x, -this.settings.gravity.y, 0);
 
         this.particles.forEach((particle, index) => {
@@ -231,7 +231,7 @@ export default class World {
             particle.zRange.min = this.settings.zRange.min;
             particle.zRange.max = this.settings.zRange.max;
             particle.maxZ = this.settings.maxZ;
-            particle.run({ gravity: this.gravity });
+            particle.run({ gravity: this.gravity, delta });
             particle.updateMatrix();
             this.mesh.setMatrixAt(index, particle.matrix);
             this.mesh.instanceMatrix.needsUpdate = true;
@@ -273,6 +273,7 @@ class Particle extends Object3D {
     public opacityRange = { min: 0.2, max: 0.8 };
     public zRange = { min: 0.2, max: 0.8 };
     public maxZ = -5;
+    private rotationDirection = new Vector3();
 
     public setup(props: ParticleProps) {
         this.reset();
@@ -286,24 +287,34 @@ class Particle extends Object3D {
         this.isDead = false;
     }
 
-    public run({ gravity }: { gravity: Vector3 }) {
-        this.applyForce(gravity);
-        this.update();
+    public run({ gravity, delta }: { gravity: Vector3, delta: number }) {
+
+        const g = gravity.clone();
+        g.multiplyScalar(delta * 120);
+        this.applyForce(g);
+        this.update(delta);
+    }
+
+    public setRotation(direction: Vector3) {
+        this.rotation.setFromVector3(direction);
+        this.rotationDirection.x = Math.sign(this.rotation.x);
+        this.rotationDirection.y = Math.sign(this.rotation.y);
+        this.rotationDirection.z = Math.sign(this.rotation.z);
     }
 
     private applyForce(force: Vector3) {
         this.acceleration.add(force);
     }
 
-    public update() {
+    public update(delta: number) {
         if (this.isDead) return;
         this.velocity.add(this.acceleration);
         this.position.add(this.velocity);
-        this.lifespan -= this.dieSpeed;
+        this.lifespan -= this.dieSpeed * delta * 150;
         this.isDead = this.lifespan <= 0;
         this.acceleration.multiplyScalar(0);
         this.updateOpacity();
-        this.updateRotation();
+        this.updateRotation(delta);
         // this.updateZ();
     }
 
@@ -313,10 +324,10 @@ class Particle extends Object3D {
         this.opacity = range(this.lifespan, 1, max, 0, 1) * range(this.lifespan, min, 0, 1, 0);
     }
 
-    updateRotation() {
-        this.rotation.y -= 0.01 * Math.sign(this.rotation.y);
-        this.rotation.x -= 0.01 * Math.sign(this.rotation.x);
-        this.rotation.z -= 0.01 * Math.sign(this.rotation.z);
+    updateRotation(delta: number) {
+        this.rotation.x -= 0.01 * this.rotationDirection.x * delta * 75;
+        this.rotation.y -= 0.01 * this.rotationDirection.y * delta * 150;
+        this.rotation.z -= 0.01 * this.rotationDirection.z * delta * 150;
     }
 
     updateZ() {
