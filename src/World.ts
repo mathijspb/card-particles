@@ -1,3 +1,4 @@
+import gsap from 'gsap';
 import { Camera, CanvasTexture, DynamicDrawUsage, InstancedBufferAttribute, InstancedMesh, MeshBasicMaterial, Object3D, PlaneGeometry, Scene, ShaderMaterial, Vector2, Vector3 } from 'three';
 import onUpdate, { UpdateParams } from './hooks/onUpdate';
 import onWindowResize from './hooks/onWindowResize';
@@ -35,7 +36,7 @@ export default class World {
         current: new Vector3()
     };
     private settings =  {
-        gravity: new Vector2(0, 0.0008),
+        gravity: new Vector2(0, 0.0010),
         spawnDistance: 3,
         velocityModifier: 0.03,
         dieSpeed: 0.01,
@@ -46,11 +47,18 @@ export default class World {
     private mesh: InstancedMesh;
     private particleIndex = 0;
 
+    private div: HTMLDivElement;
+
     constructor() {
         this.bindHandlers();
         this.setupEventListeners();
         this.mesh = this.createMesh();
         this.particles = this.createParticles();
+
+        const div = document.createElement('div');
+        div.style.cssText = 'position:absolute;top:0;left:0;background-color:red;width:40px;height:40px';
+        document.body.appendChild(div);
+        this.div = div;
 
         // Debug
         this.debug.addBinding(this.settings, 'gravity', { step: 0.0001, picker: 'inline' });
@@ -163,11 +171,21 @@ export default class World {
         return particles;
     }
 
+    private count = 0;
+
     update({ delta }: UpdateParams) {
+        delta = gsap.ticker.deltaRatio();
+
         this.updatePosition();
         this.updateVelocity(delta);
-        this.spawnParticles();
+        this.spawnParticles(delta);
         this.updateParticles(delta);
+
+        this.div.style.transform = `translateX(${this.count}px)`;
+        this.count += 1 * delta;
+
+
+        // console.log(, delta);
     }
 
     updatePosition() {
@@ -177,21 +195,21 @@ export default class World {
     }
 
     updateVelocity(delta: number) {
-        this.velocity.subVectors(this.position.current, this.position.previous).divideScalar(delta);
+        this.velocity.subVectors(this.position.current, this.position.previous);
     }
 
-    spawnParticles() {
+    spawnParticles(delta: number) {
         this.totalDistance += this.position.current.distanceTo(this.position.previous);
         if (this.totalDistance > this.settings.spawnDistance) {
-            this.spawnParticle();
+            this.spawnParticle(delta);
             this.totalDistance = 0;
         }
     }
 
-    spawnParticle() {
+    spawnParticle(delta: number) {
         if (!globals.camera) return;
 
-        const velocity = this.velocity.normalize().multiplyScalar(this.settings.velocityModifier);
+        const velocity = this.velocity.normalize().multiplyScalar(delta * 0.13);
         // const particle = this.particles.find((particle: Particle) => particle.isDead);
         const particle = this.particles[this.particleIndex];
         // const particle = findItemDescending(this.particles,) .find((particle: Particle) => particle.isDead);
@@ -289,9 +307,9 @@ class Particle extends Object3D {
 
     public run({ gravity, delta }: { gravity: Vector3, delta: number }) {
 
-        const g = gravity.clone();
-        g.multiplyScalar(delta * 120);
-        this.applyForce(g);
+        const g = gravity.clone().multiplyScalar(delta * 3);
+
+        this.applyForce(g, delta);
         this.update(delta);
     }
 
@@ -302,15 +320,20 @@ class Particle extends Object3D {
         this.rotationDirection.z = Math.sign(this.rotation.z);
     }
 
-    private applyForce(force: Vector3) {
+    private applyForce(force: Vector3, delta: number) {
         this.acceleration.add(force);
     }
 
     public update(delta: number) {
         if (this.isDead) return;
-        this.velocity.add(this.acceleration);
+
+        const a = this.acceleration.clone().multiplyScalar(delta * 0.5);
+        const b = this.acceleration.clone().multiplyScalar(delta * 0.5);
+        this.velocity.add(a);
         this.position.add(this.velocity);
-        this.lifespan -= this.dieSpeed * delta * 150;
+        this.velocity.add(b);
+
+        this.lifespan -= this.dieSpeed * delta * 2;
         this.isDead = this.lifespan <= 0;
         this.acceleration.multiplyScalar(0);
         this.updateOpacity();
@@ -322,12 +345,13 @@ class Particle extends Object3D {
         const min = Math.max(1.0 - this.opacityRange.max, 0.001);
         const max = Math.min(1.0 - this.opacityRange.min, 0.999);
         this.opacity = range(this.lifespan, 1, max, 0, 1) * range(this.lifespan, min, 0, 1, 0);
+        // this.opacity = 1;
     }
 
     updateRotation(delta: number) {
-        this.rotation.x -= 0.01 * this.rotationDirection.x * delta * 75;
-        this.rotation.y -= 0.01 * this.rotationDirection.y * delta * 150;
-        this.rotation.z -= 0.01 * this.rotationDirection.z * delta * 150;
+        this.rotation.x -= 0.01 * this.rotationDirection.x * delta * 1;
+        this.rotation.y -= 0.01 * this.rotationDirection.y * delta * 2;
+        this.rotation.z -= 0.01 * this.rotationDirection.z * delta * 2;
     }
 
     updateZ() {

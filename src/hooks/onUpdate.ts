@@ -1,3 +1,5 @@
+import gsap from 'gsap';
+
 const callbacks: any = [];
 let isHidden = false;
 let prevTime = performance.now();
@@ -10,12 +12,14 @@ document.addEventListener('visibilitychange', () => {
 function update() {
     if (isHidden) return;
     const time = performance.now();
-    requestAnimationFrame(update);
     const delta = (time - prevTime) / 1000;
     callbacks.forEach((callback: any) => callback({ delta, time }));
     prevTime = time;
 }
-requestAnimationFrame(update);
+
+// gsap.ticker.fps(60);
+gsap.ticker.add(update);
+console.log('add ticker');
 
 function onUpdate(scopeOrCallback: any | Function, callback?: Function) {
     let newCallback;

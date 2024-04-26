@@ -10,4 +10,5 @@ void main() {
     vec4 color = texture2D(uSprite, uv);
 
     gl_FragColor = vec4(color.rgb, vOpacity);
+    // gl_FragColor = vec4(1.0, 0.0, 1.0, vOpacity);
 }
