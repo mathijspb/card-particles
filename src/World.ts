@@ -47,18 +47,11 @@ export default class World {
     private mesh: InstancedMesh;
     private particleIndex = 0;
 
-    private div: HTMLDivElement;
-
     constructor() {
         this.bindHandlers();
         this.setupEventListeners();
         this.mesh = this.createMesh();
         this.particles = this.createParticles();
-
-        const div = document.createElement('div');
-        div.style.cssText = 'position:absolute;top:0;left:0;background-color:red;width:40px;height:40px';
-        document.body.appendChild(div);
-        this.div = div;
 
         // Debug
         this.debug.addBinding(this.settings, 'gravity', { step: 0.0001, picker: 'inline' });
@@ -171,8 +164,6 @@ export default class World {
         return particles;
     }
 
-    private count = 0;
-
     update({ delta }: UpdateParams) {
         delta = gsap.ticker.deltaRatio();
 
@@ -180,10 +171,6 @@ export default class World {
         this.updateVelocity(delta);
         this.spawnParticles(delta);
         this.updateParticles(delta);
-
-        this.div.style.transform = `translateX(${this.count}px)`;
-        this.count += 1 * delta;
-
 
         // console.log(, delta);
     }
