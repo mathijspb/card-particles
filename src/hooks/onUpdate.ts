@@ -2,19 +2,15 @@ import gsap from 'gsap';
 
 const callbacks: any = [];
 let isHidden = false;
-let prevTime = performance.now();
 
 document.addEventListener('visibilitychange', () => {
     isHidden = document.hidden;
-    prevTime = performance.now();
 });
 
 function update() {
     if (isHidden) return;
-    const time = performance.now();
-    const delta = (time - prevTime) / 1000;
-    callbacks.forEach((callback: any) => callback({ delta, time }));
-    prevTime = time;
+    const delta = gsap.ticker.deltaRatio();
+    callbacks.forEach((callback: any) => callback({ delta }));
 }
 
 // gsap.ticker.fps(60);
@@ -41,5 +37,4 @@ function onUpdate(scopeOrCallback: any | Function, callback?: Function) {
 export default onUpdate;
 export interface UpdateParams {
     delta: number;
-    time: number;
 }
